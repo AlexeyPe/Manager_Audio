@@ -37,7 +37,8 @@ func _on_Btn_AllStop_pressed():
 func _on_Btn_AllContinue_pressed():
 	Manager_Audio.all_continue()
 
-func _on_HSlider_drag_ended(value_changed:bool):
-	if value_changed and current_audio_music != null:
-		var slider:HSlider = $CenterContainer/HBoxContainer/VBoxContainer4/HBoxContainer/HSlider
+
+func _on_HSlider_value_changed(value):
+	var slider:HSlider = $CenterContainer/HBoxContainer/VBoxContainer4/HBoxContainer/HSlider
+	if current_audio_music != null:
 		current_audio_music.set_volume(slider.value)
