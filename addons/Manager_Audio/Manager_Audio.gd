@@ -1,60 +1,188 @@
 extends Node
 
-# audio_id:int, audio_name:String
-# if OS.has_feature("HTML5") -> data:Dictionary = {"howler_id":int}
-signal on_ended_audio(audio_id, audio_name, data)
+# audio:Audio
+signal on_ended_audio(audio)
+
 
 enum AudioName {
 	pip, 
+	test_music
 }
 
 # AudioName.keys()[x] (String) => path to audio (String)
 const _AudioName_to_audio_path = {
-	"pip": "pip.mp3",
+	"pip": "res://audio/pip.mp3",
+	"test_music": "res://audio/test_music_cc0.ogg"
 }
 
-# AudioName key (String) => JavaScriptObject (Howl)
-var _AudioName_to_howler_var = {}
+# AudioName => [Audio] (Audio._js_audio != null and Audio._godot_audio == null)
+var _js_audio_pool = {}
+# id:int => Audio
+var all_audio = []
 
-# howl id (int) => AudioName (int)
-var _howlid_to_AudioName = {}
+var all_stop:bool = false
 
-var _js_howl_ended_callback = JavaScript.create_callback(self, "on_howl_ended")
+class Audio:
+	var is_ended:bool
+	var is_playing:bool
+	var is_pause:bool = false
+	var pause_time:float = -1
+	var audio_name:int
+	var volume:float
+	var _js_audio:JavaScriptObject
+	var _js_audio_ended_callback = JavaScript.create_callback(self, "_js_audio_ended_callback")
+	var _godot_audio:AudioStreamPlayer
+	func _js_audio_ended_callback(args:Array):
+		print("_js_audio_ended_callback")
+		is_playing = false
+		is_pause = false
+		is_ended = true
+		Manager_Audio.emit_signal("on_ended_audio", self)
+	func _init(_audio_name:int, audio:Dictionary):
+		audio_name = _audio_name
+		is_playing = true
+		is_ended = false
+		is_pause = false
+		if audio.has("_godot_audio"):
+			_godot_audio = audio["_godot_audio"]
+			volume = db2linear(_godot_audio.volume_db)
+			yield(_godot_audio,"finished")
+			if is_pause == false:
+				is_playing = false
+				is_ended = true
+				_godot_audio.queue_free()
+				_godot_audio = null
+				Manager_Audio.emit_signal("on_ended_audio", self)
+		if audio.has("_js_audio"):
+			_js_audio = audio["_js_audio"]
+			volume = _js_audio.volume
+			_js_audio.addEventListener("ended", _js_audio_ended_callback)
+	func play():
+		if is_playing: return
+		is_playing = true
+		is_ended = false
+		is_pause = false
+		if _js_audio == null:
+			if _godot_audio != null:
+				_godot_audio.queue_free()
+			
+			_godot_audio = AudioStreamPlayer.new()
+			_godot_audio.stream = load(Manager_Audio._AudioName_to_audio_path[Manager_Audio.AudioName.keys()[audio_name]])
+			_godot_audio.volume_db = linear2db(volume)
+			Manager_Audio.add_child(_godot_audio)
+			_godot_audio.play()
+			yield(_godot_audio,"finished")
+			if is_pause == false:
+				is_playing = false
+				is_ended = true
+				Manager_Audio.emit_signal("on_ended_audio", self)
+		else:
+			_js_audio.play()
+	func set_volume(new:float):
+		new = clamp(new, 0.0, 1.0)
+		volume = new
+		if _godot_audio != null:
+			_godot_audio.volume_db = linear2db(volume)
+		if _js_audio != null:
+			_js_audio.volume = volume
+	func pause_audio():
+		if is_ended or !is_playing: return
+		is_pause = true
+		if _godot_audio != null:
+			pause_time = _godot_audio.get_playback_position()
+			_godot_audio.stop()
+		if _js_audio != null:
+			pause_time = _js_audio.currentTime
+			_js_audio.pause()
+	func continue_audio():
+		is_pause = false
+		if _godot_audio != null:
+			_godot_audio.play()
+			_godot_audio.seek(pause_time)
+			yield(_godot_audio,"finished")
+			if is_pause == false:
+				is_playing = false
+				is_ended = true
+				_godot_audio.queue_free()
+				_godot_audio = null
+				Manager_Audio.emit_signal("on_ended_audio", self)
+				pause_time = -1
+		if _js_audio != null: 
+			_js_audio.play()
+			pause_time = -1
 
 func _ready():
-	if !OS.has_feature("HTML5"): return
-#	print("_ready")
-	for _audio_name_key_id in _AudioName_to_audio_path.keys().size():
-		var _audio_name_key = _AudioName_to_audio_path.keys()[_audio_name_key_id]
-		var _audio_path = _AudioName_to_audio_path[_audio_name_key]
-#		print("_ready _audio_name_key:%s, _audio_path:%s"%[_audio_name_key, _audio_path])
-		var console = JavaScript.get_interface("console")
-		var _js_howl_arg = JavaScript.create_object("Object")
-		_js_howl_arg.src = _audio_path
-		var _js_howl = JavaScript.create_object("Howl", _js_howl_arg)
-		_js_howl.on('end', _js_howl_ended_callback)
-		_AudioName_to_howler_var[_audio_name_key] = _js_howl
-#		print("_AudioName_to_howler_var[_audio_name_key] = ", _js_howl)
-#		console.log(_js_howl)
+	if OS.has_feature("HTML5"):
+		load_all_audio(true)
 
-# return howl_id:int (audio player)
-func audio_play(audio:int) -> int:
-	if !OS.has_feature("HTML5"): return -900
-#	print("audio_play")
-	var howl_return = _AudioName_to_howler_var[AudioName.keys()[audio]].play()
-	_howlid_to_AudioName[howl_return] = audio
-	return howl_return
+func load_all_audio(invert:bool):
+	var audio_name_ids:Array = AudioName.values()
+	if invert: audio_name_ids.invert()
+	for audio_name in audio_name_ids:
+		audio_play(audio_name, 0.0)
 
-func set_global_volume(new:float):
-	if !OS.has_feature("HTML5"): return
-	new = clamp(new, 0.0, 1.0)
-#	print("set_global_volume new ", new)
-	var Howler = JavaScript.get_interface("Howler")
-	Howler.volume(new)
+func on_audio_ended(audio:Audio):
+	emit_signal("on_ended_audio", audio)
 
-func on_howl_ended(args:Array):
-#	print("on_howl_ended args ", args)
-	var howler_id:int = args[0]
-	var audio_id:int = _howlid_to_AudioName[args[0]]
-	var audio_name:String = AudioName.keys()[_howlid_to_AudioName[args[0]]]
-	emit_signal("on_ended_audio", audio_id, audio_name, {"howler_id": howler_id})
+# audio_name:AudioName, volume:float(0..1)
+func audio_play(audio_name:int, volume:float = 1.0) -> Audio:
+	if all_stop: return null
+	var audio_path:String = _AudioName_to_audio_path[AudioName.keys()[audio_name]]
+	var result:Audio
+	if (OS.has_feature("Android") or OS.has_feature("Windows")) and !OS.has_feature("HTML5"):
+		var _audio:AudioStreamPlayer = AudioStreamPlayer.new()
+		_audio.stream = load(audio_path)
+		_audio.volume_db = linear2db(volume)
+		add_child(_audio)
+		var _audio_class = Audio.new(audio_name, {"_godot_audio": _audio})
+		_audio.play()
+		result = _audio_class
+		all_audio.append(result)
+	elif OS.has_feature("HTML5"):
+		audio_path.erase(0, 6) # earse "res://"
+		var _js_audio:JavaScriptObject
+		if !_js_audio_pool.has(audio_name):
+			_js_audio = JavaScript.create_object("Audio", audio_path)
+			
+			var _audio = Audio.new(audio_name, {"_js_audio":_js_audio})
+			_js_audio_pool[audio_name] = []
+			_js_audio_pool[audio_name].append(_audio)
+			_js_audio.volume = volume
+			_js_audio.play()
+			result = _audio
+			print("create")
+			all_audio.append(result)
+		else:
+			var need_create:bool = true
+			for audio in _js_audio_pool[audio_name]:
+				if audio is Audio:
+					if audio._js_audio != null and !audio.is_playing:
+						audio.is_playing = true
+						audio._js_audio.play()
+						audio._js_audio.volume = volume
+						need_create = false
+						break
+			if need_create:
+				_js_audio = JavaScript.create_object("Audio", audio_path)
+				var _audio = Audio.new(audio_name, {"_js_audio":_js_audio})
+				_js_audio_pool[audio_name].append(_audio)
+				_js_audio.play()
+				_js_audio.volume = volume
+				result = _audio
+#				print("create")
+				all_audio.append(result)
+	print('_js_audio_pool ', _js_audio_pool)
+	return result
+
+func all_pause():
+	for audio in all_audio:
+		if audio is Audio:
+			audio.pause_audio()
+	all_stop = true
+
+func all_continue():
+	for audio in all_audio:
+		if audio is Audio:
+			if audio.is_pause:
+				audio.continue_audio()
+	all_stop = false
