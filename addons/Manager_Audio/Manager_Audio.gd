@@ -2,7 +2,10 @@ extends Node
 
 # audio:Audio
 signal on_ended_audio(audio)
+signal __js_decodeAudioData_callback() # private signal..
 
+var _print_debug:bool = true
+const _print:String = "Addon:ManagerAudio"
 
 enum AudioName {
 	pip, 
@@ -10,10 +13,13 @@ enum AudioName {
 }
 
 # AudioName.keys()[x] (String) => path to audio (String)
-const _AudioName_to_audio_path = {
+const _AudioName_to_audio_path:Dictionary = {
 	"pip": "res://audio/pip.mp3",
 	"test_music": "res://audio/test_music_cc0.ogg"
 }
+
+# AudioName => js_AudioBuffer (https://developer.mozilla.org/ru/docs/Web/API/AudioBuffer)
+var _js_AudioName_to_js_AudioBuffer:Dictionary = {}
 
 # AudioName => [Audio] (Audio._js_audio != null and Audio._godot_audio == null)
 var _js_audio_pool = {}
@@ -21,6 +27,11 @@ var _js_audio_pool = {}
 var all_audio = []
 
 var all_stop:bool = false
+
+var js_audio_context
+var js_console:JavaScriptObject
+var js_decodeAudioData_callback = JavaScript.create_callback(self, "js_decodeAudioData_callback")
+var _current_js_decodeAudioData_AudioBuffer:JavaScriptObject # not use
 
 class Audio:
 	var is_ended:bool
@@ -111,15 +122,58 @@ class Audio:
 			_js_audio.play()
 			pause_time = -1
 
+func _check_func_valid(function_name:String, args:Array) -> bool:
+	var result:bool = false
+	result = OS.has_feature("HTML5")
+	print("%s _check_func_valid(function_name:%s, args:%s)"%[_print, function_name, args])
+	return result
+
 func _ready():
 	if OS.has_feature("HTML5"):
-		load_all_audio(true)
+		if _print_debug: print("%s _ready(), OS has_feature('HTML5') - the addon works, for audio the Web Audio API is used"%[_print])
+		# Web Audio Api/AudioContext предназначен для управления и воспроизведения всех звуков
+		js_audio_context = JavaScript.create_object("AudioContext")
+		js_console = JavaScript.get_interface("console")
+		
+		# Для каждого звука нужно создать AudioBuffer, это загрузит аудио в память
+		# AudioBuffer создаётся методами AudioContext.decodeAudioData() или AudioContext.createBuffer()
+		# С помощью AudioBufferSourceNode можно послушать данные из AudioBuffer
+		yield(load_all_audio(), "completed")
+		for key in _js_AudioName_to_js_AudioBuffer:
+			js_console.log(key, " ", _js_AudioName_to_js_AudioBuffer[key])
+	else:
+		if _print_debug: print("%s _ready(), OS !has_feature('HTML5') - the addon works, Godot is used for audio"%[_print])
+		
 
-func load_all_audio(invert:bool):
-	var audio_name_ids:Array = AudioName.values()
-	if invert: audio_name_ids.invert()
-	for audio_name in audio_name_ids:
-		audio_play(audio_name, 0.0)
+func load_all_audio():
+	if !_check_func_valid("load_all_audio", []): return
+	var time_ms_start_total:int = OS.get_ticks_msec() # for _print_debug true
+	var time_ms_start:int = 0 # for _print_debug true
+	for key_name in _AudioName_to_audio_path.keys():
+		if _print_debug: time_ms_start = OS.get_ticks_msec()
+		
+		var audio_file_data:PoolByteArray = load(_AudioName_to_audio_path[key_name]).data
+		var js_array_buffer:JavaScriptObject = JavaScript.create_object("ArrayBuffer", audio_file_data.size())
+		var js_Uint8Array:JavaScriptObject = JavaScript.create_object("Uint8Array", js_array_buffer)
+		
+		for byte_id in audio_file_data.size(): 
+#			Need convert audio_file_data(gdscript PoolByteArray) to ArrayBuffer(js PoolByteArray)
+			js_Uint8Array[byte_id] = audio_file_data[byte_id]
+		
+		js_audio_context.decodeAudioData(js_array_buffer).then(js_decodeAudioData_callback)
+		yield(self, "__js_decodeAudioData_callback")
+		var res = _current_js_decodeAudioData_AudioBuffer
+		_js_AudioName_to_js_AudioBuffer[key_name] = res
+		
+		if _print_debug: print("%s loaded in %sms"%[key_name, OS.get_ticks_msec() - time_ms_start])
+	if _print_debug: print("all loaded in %sms"%[OS.get_ticks_msec() - time_ms_start_total])
+
+func js_decodeAudioData_callback(args:Array):
+	_current_js_decodeAudioData_AudioBuffer = args[0]
+	emit_signal("__js_decodeAudioData_callback")
+
+func test():
+	print("test")
 
 func on_audio_ended(audio:Audio):
 	emit_signal("on_ended_audio", audio)
