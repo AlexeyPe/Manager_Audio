@@ -10,11 +10,16 @@ func _ready():
 
 func on_ended_audio(audio:Manager_Audio.Audio):
 	print("on_ended_audio")
-	if audio.audio_name == Manager_Audio.AudioName.test_music: current_audio_music.play()
+	print("audio.audio_name ", audio.audio_name)
+	print("Manager_Audio.AudioName.test_music ", Manager_Audio.AudioName.test_music)
+	if audio.audio_name == Manager_Audio.AudioName.test_music:
+		$CenterContainer/HBoxContainer/VBoxContainer/Btn_Play_music.disabled = false
+
+var btn_sound_audio:Manager_Audio.Audio
 
 func _on_Btn_Play_sound_pressed():
 	print("_on_Btn_Play_sound_pressed")
-	Manager_Audio.audio_play(btn_sound, 1.0)
+	Manager_Audio.audio_play(Manager_Audio.AudioName.pip, 1)
 
 func _on_Btn_Play_music_pressed():
 	if current_audio_music == null or current_audio_music.is_ended: 
@@ -22,9 +27,8 @@ func _on_Btn_Play_music_pressed():
 		if current_audio_music != null:
 			print("current_audio_music.is_ended ", current_audio_music.is_ended)
 		current_audio_music = Manager_Audio.audio_play(Manager_Audio.AudioName.test_music, 1.0)
-	else: current_audio_music.continue_audio()
-	$CenterContainer/HBoxContainer/VBoxContainer/Btn_Stop_music.disabled = false
-	$CenterContainer/HBoxContainer/VBoxContainer/Btn_Play_music.disabled = true
+		$CenterContainer/HBoxContainer/VBoxContainer/Btn_Play_music.disabled = true
+		
 
 func _on_Btn_Stop_music_pressed():
 	current_audio_music.pause_audio()
