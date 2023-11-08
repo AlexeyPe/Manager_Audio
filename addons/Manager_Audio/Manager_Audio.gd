@@ -57,12 +57,12 @@ class Audio:
 	var _js_audio_ended_callback = JavaScript.create_callback(self, "_js_audio_ended_callback")
 	var _godot_audio:AudioStreamPlayer
 	func _js_audio_ended_callback(args:Array):
-		print("_js_audio_ended_callback")
+#		print("_js_audio_ended_callback")
 		is_playing = false
 		is_pause = false
 		is_ended = true
 		Manager_Audio.emit_signal("on_ended_audio", self)
-	func _init(_audio_name:int, volume:float, audio:Dictionary):
+	func _init(_audio_name:int, _volume:float, audio:Dictionary):
 		audio_name = _audio_name
 		is_playing = true
 		is_ended = false
@@ -87,7 +87,7 @@ class Audio:
 				_js_audio.addEventListener("ended", _js_audio_ended_callback)
 				_js_audio.connect(_js_gainNode) # source to gain
 				_js_gainNode.connect(Manager_Audio.js_audio_context.destination) # gain to js_audio_context.destination 
-			_js_gainNode.gain.value = 1.0
+			set_volume(_volume)
 			_js_audio.start(0.0)
 	func play():
 		if is_playing: return
@@ -95,7 +95,7 @@ class Audio:
 		is_ended = false
 		is_pause = false
 		if is_js_audio: 
-			print("play is_js_audio")
+#			print("play is_js_audio")
 			_init(audio_name, volume, {"_js_audio":true})
 		else:
 			if _godot_audio != null:
@@ -147,13 +147,13 @@ class Audio:
 func _check_func_valid(function_name:String, args:Array) -> bool:
 	var result:bool = false
 	result = OS.has_feature("HTML5")
-	print("%s _check_func_valid(function_name:%s, args:%s)"%[_print, function_name, args])
+	if _print_debug: print("%s _check_func_valid(function_name:%s, args:%s)"%[_print, function_name, args])
 	return result
 
 func _ready():
 	if OS.has_feature("HTML5"):
 		if _print_debug: print("%s _ready(), OS has_feature('HTML5') - the addon works, for audio the Web Audio API is used"%[_print])
-		# Web Audio Api/AudioContext предназначен для управления и воспроизведения всех звуков
+		# Web Audio Api/AudioContext is designed to control and play all sounds
 		js_audio_context = JavaScript.create_object("AudioContext")
 		js_window = JavaScript.get_interface("window")
 		js_console = JavaScript.get_interface("console")
@@ -162,9 +162,9 @@ func _ready():
 		# https://github.com/swevans/unmute/tree/master#usage
 		js_unmuteHandle = js_window.unmute(js_audio_context, allowBackgroundPlayback, forceIOSBehavior);
 		
-		# Для каждого звука нужно создать AudioBuffer, это загрузит аудио в память
-		# AudioBuffer создаётся методами AudioContext.decodeAudioData() или AudioContext.createBuffer()
-		# С помощью AudioBufferSourceNode можно послушать данные из AudioBuffer
+		# For each sound you need to create an AudioBuffer
+		# AudioBuffer is created using AudioContext.decodeAudioData() or AudioContext.createBuffer()
+		# Using AudioBufferSourceNode you can listen to data from AudioBuffer
 		load_all_audio()
 	else:
 		if _print_debug: print("%s _ready(), OS !has_feature('HTML5') - the addon works, Godot is used for audio"%[_print])
@@ -190,12 +190,10 @@ func load_all_audio():
 		_js_array_keys.push(key_name)
 		_js_array_buffers.push(js_array_buffer)
 	
-	
 	js_window.decodeAudioDataArr(js_audio_context, _js_array_buffers, _js_array_keys, js_decodeAudioData_callback)
 
 
 func js_decodeAudioData_callback(args:Array):
-#	print("js_decodeAudioData_callback ", args)
 	_js_AudioName_to_js_AudioBuffer[args[1]] = args[0]
 	_current_js_decodeAudioData_count += 1
 	if _current_js_decodeAudioData_count == _current_js_decodeAudioData_count_target:
@@ -209,8 +207,7 @@ func audio_play(audio_name:int, volume:float = 1.0) -> Audio:
 	if all_stop: return null
 	var audio_path:String = _AudioName_to_audio_path[AudioName.keys()[audio_name]]
 	var result:Audio
-	if (OS.has_feature("Android") or OS.has_feature("Windows")) and !OS.has_feature("HTML5") and !OS.has_feature("iOS"):
-#	if true:
+	if (OS.has_feature("Android") or OS.has_feature("Windows") or OS.has_feature("iOS")) and !OS.has_feature("HTML5"):
 		var _audio:AudioStreamPlayer = AudioStreamPlayer.new()
 		_audio.stream = load(audio_path)
 		_audio.volume_db = linear2db(volume)

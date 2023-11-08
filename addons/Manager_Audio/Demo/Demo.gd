@@ -19,14 +19,14 @@ var btn_sound_audio:Manager_Audio.Audio
 
 func _on_Btn_Play_sound_pressed():
 	print("_on_Btn_Play_sound_pressed")
-	Manager_Audio.audio_play(Manager_Audio.AudioName.pip, 1)
+	Manager_Audio.audio_play(Manager_Audio.AudioName.pip, 1.0)
 
 func _on_Btn_Play_music_pressed():
 	if current_audio_music == null or current_audio_music.is_ended: 
 		print("current_audio_music == null ", current_audio_music == null)
 		if current_audio_music != null:
 			print("current_audio_music.is_ended ", current_audio_music.is_ended)
-		current_audio_music = Manager_Audio.audio_play(Manager_Audio.AudioName.test_music, 1.0)
+		current_audio_music = Manager_Audio.audio_play(Manager_Audio.AudioName.test_music, $CenterContainer/HBoxContainer/VBoxContainer4/HBoxContainer/HSlider.value)
 		$CenterContainer/HBoxContainer/VBoxContainer/Btn_Play_music.disabled = true
 		
 
