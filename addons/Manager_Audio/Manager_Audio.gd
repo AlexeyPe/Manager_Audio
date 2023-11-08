@@ -160,7 +160,7 @@ func _ready():
 		
 		# iOS hack
 		# https://github.com/swevans/unmute/tree/master#usage
-		js_unmuteHandle = js_window.unmute(js_audio_context, allowBackgroundPlayback, forceIOSBehavior);
+#		js_unmuteHandle = js_window.unmute(js_audio_context, allowBackgroundPlayback, forceIOSBehavior);
 		
 		# For each sound you need to create an AudioBuffer
 		# AudioBuffer is created using AudioContext.decodeAudioData() or AudioContext.createBuffer()
@@ -224,9 +224,9 @@ func audio_play(audio_name:int, volume:float = 1.0) -> Audio:
 
 func all_pause():
 	if OS.has_feature("HTML5"): 
-		if js_unmuteHandle != null:
-			js_unmuteHandle.dispose()
-			js_unmuteHandle = null
+#		if js_unmuteHandle != null:
+#			js_unmuteHandle.dispose()
+#			js_unmuteHandle = null
 		js_audio_context.suspend()
 	else:
 		for audio in all_audio:
@@ -236,8 +236,8 @@ func all_pause():
 
 func all_continue():
 	if OS.has_feature("HTML5"): 
-		if js_unmuteHandle == null:
-			js_unmuteHandle = js_window.unmute(js_audio_context, allowBackgroundPlayback, forceIOSBehavior)
+#		if js_unmuteHandle == null:
+#			js_unmuteHandle = js_window.unmute(js_audio_context, allowBackgroundPlayback, forceIOSBehavior)
 		js_audio_context.resume()
 	else:
 		for audio in all_audio:
