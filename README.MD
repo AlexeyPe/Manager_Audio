@@ -20,6 +20,8 @@ iOS | Godot | is default Godot
 1. You can find the demo in [addons/Manager_Audio/Demo](addons/Manager_Audio/Demo)
 2. If you have python, you can test the demo locally - open cmd in the directory and type `py -m http.server`
 
+![img2](https://i.imgur.com/MAeeYwx.png)
+
 ### How Install
 1. Install in AssetLib
 2. Add `'Head Include'` in `Project > Export > HTML5 > Head Include`. Paste code bellow
@@ -38,6 +40,8 @@ iOS | Godot | is default Godot
 2. Manager_Audio.gd, _AudioName_to_audio_path, add key(AudioName) and value(path to audio)
 3. For play audio use `Manager_Audio.audio_play(AudioName, volume)` and `Manager_Audio.all_pause()`/`Manager_Audio.all_continue()`
 4. For the web: audio files are not needed next to index.html, everything works without it (not needed at all)
+
+![img1](https://i.imgur.com/mBWHa2u.png)
 
 #### Manager_Audio base functions
 ```gdscript
