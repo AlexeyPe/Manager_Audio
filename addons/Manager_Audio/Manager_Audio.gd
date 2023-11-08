@@ -227,6 +227,9 @@ func all_pause():
 		if js_unmuteHandle != null:
 			js_unmuteHandle.dispose()
 			js_unmuteHandle = null
+		if js_audio_context == null: 
+			print("all_continue() js_audio_context == null")
+			return
 		js_audio_context.suspend()
 	else:
 		for audio in all_audio:
@@ -237,7 +240,13 @@ func all_pause():
 func all_continue():
 	if OS.has_feature("HTML5"): 
 		if js_unmuteHandle == null:
+			if js_window == null: 
+				print("all_continue() js_window == null")
+				return
 			js_unmuteHandle = js_window.unmute(js_audio_context, allowBackgroundPlayback, forceIOSBehavior)
+		if js_audio_context == null: 
+			print("all_continue() js_audio_context == null")
+			return
 		js_audio_context.resume()
 	else:
 		for audio in all_audio:
