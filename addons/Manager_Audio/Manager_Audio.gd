@@ -13,6 +13,9 @@ const _print:String = "Addon:ManagerAudio"
 var allowBackgroundPlayback = false; # default false, recommended false
 var forceIOSBehavior = false; # default false, recommended false
 
+var convert_to_wave_for_iOS:bool = true # Need true if your audio files is .ogg/..
+var convert_to_wave_for_other:bool = false # Win/Android
+
 enum AudioName {
 	pip, 
 	test_music
@@ -160,7 +163,8 @@ func _ready():
 		
 		# iOS hack
 		# https://github.com/swevans/unmute/tree/master#usage
-		js_unmuteHandle = js_window.unmute(js_audio_context, allowBackgroundPlayback, forceIOSBehavior);
+		if OS.has_feature("iOS") and OS.has_feature("HTML5"):
+			js_unmuteHandle = js_window.unmute(js_audio_context, allowBackgroundPlayback, forceIOSBehavior);
 		
 		# For each sound you need to create an AudioBuffer
 		# AudioBuffer is created using AudioContext.decodeAudioData() or AudioContext.createBuffer()
@@ -190,14 +194,22 @@ func load_all_audio():
 		_js_array_keys.push(key_name)
 		_js_array_buffers.push(js_array_buffer)
 	
+	if (OS.has_feature("iOS") or OS.has_feature("OSX") and convert_to_wave_for_iOS) \
+	or ((OS.has_feature("Android") or OS.has_feature("Windows")) and convert_to_wave_for_other):
+		var _new_js_buffers:JavaScriptObject = JavaScript.create_object("Array")
+		for _js_buffer in _js_array_buffers:
+			_new_js_buffers.push(js_window.audioBufferToWav(_js_buffer))
+		_js_array_buffers = _new_js_buffers
+	
 	js_window.decodeAudioDataArr(js_audio_context, _js_array_buffers, _js_array_keys, js_decodeAudioData_callback)
 
-
 func js_decodeAudioData_callback(args:Array):
+#	js_console.log("js_decodeAudioData_callback ", args[0])
 	_js_AudioName_to_js_AudioBuffer[args[1]] = args[0]
 	_current_js_decodeAudioData_count += 1
 	if _current_js_decodeAudioData_count == _current_js_decodeAudioData_count_target:
 		emit_signal("_on_decodeAudioData_all")
+		_current_js_decodeAudioData_count = 0
 
 func on_audio_ended(audio:Audio):
 	emit_signal("on_ended_audio", audio)
