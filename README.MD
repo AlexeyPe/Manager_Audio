@@ -1,9 +1,7 @@
 # Manager_Audio - is cross-platform audio addon for Godot 3.5
 
 * This Addon is stable and ready to use
-* This addon is maintained and developed(Rare but cool updates:))
-* For context: Godot Engine audio on the web is terribly bad, this addon appeared to fix it
-* ios does not support .ogg files, but you can use them, I convert them during loading
+* TWork on the addon continues (rare, but cool updates :))
 * Currently, only 1d sound is supported, 2d/3d sound support is planned for the distant future.
 
 __My Telegram [@Alexey_Pe](https://t.me/Alexey_Pe)__
@@ -13,10 +11,15 @@ Platform | Backend | Info
 --- | --- | --- 
 HTML5/Windows | Web Audio API | perfect
 HTML5/Android | Web Audio API | perfect~<br>*1 On some phones there is a delay before playback, this is not fixable
-HTML5/iOS | Web Audio API<br>+[unmute.js](https://github.com/swevans/unmute)| perfect<br>*1 Apple has a lot of problems, we shift the responsibility of solving them to unmute.js :) <br>*2 iOS doesn't support .ogg, I convert it in the process to .wav
+HTML5/iOS | Godot | is default Godot
 Windows | Godot | is default Godot
 Android | Godot | is default Godot
 iOS | Godot | is default Godot
+
+* Previously there were unsuccessful attempts to use the Web Audio API on iOS - the main problems were:
+    1. There is no sound in silent mode, the correction was used unmute.js
+    2. iOS uses the Safari engine for all browsers, it has 0% support .ogg
+    3. To convert the .ogg buffer to .wav I used the [audiobuffer-to-wav](https://github.com/Experience-Monks/audiobuffer-to-wav/tree/2272eb09bd46a05e50a6d684d908aa6f13c58f63), you can look at the previous commits, in the end I decided that it was easier to leave the implementation from Godot
 
 ### Demo
 1. You can find the demo in [addons/Manager_Audio/Demo](addons/Manager_Audio/Demo)
@@ -30,11 +33,8 @@ iOS | Godot | is default Godot
 ```
 
 <!-- Manager Audio -->
-<script>try{window.AudioContext=window.AudioContext||window.webkitAudioContext}catch(o){console.log("Manager Audio, No Web Audio API support")}function decodeAudioDataArr(o,t,d,e){for(let i=0;i<d.length&&i<t.length;i++)o.decodeAudioData(t[i],(o=>{e(o,d[i])}))}</script>
-<!-- Manager Audio - audiobuffer-to-wav(for ios) -->
-<script>function audioBufferToWav(t,e){e=e||{};var n=t.numberOfChannels,a=t.sampleRate,r=e.float32?3:1,i=3===r?32:16;return encodeWAV(2===n?interleave(t.getChannelData(0),t.getChannelData(1)):t.getChannelData(0),r,a,n,i)}function encodeWAV(t,e,n,a,r){var i=r/8,o=a*i,l=new ArrayBuffer(44+t.length*i),f=new DataView(l);return writeString(f,0,"RIFF"),f.setUint32(4,36+t.length*i,!0),writeString(f,8,"WAVE"),writeString(f,12,"fmt "),f.setUint32(16,16,!0),f.setUint16(20,e,!0),f.setUint16(22,a,!0),f.setUint32(24,n,!0),f.setUint32(28,n*o,!0),f.setUint16(32,o,!0),f.setUint16(34,r,!0),writeString(f,36,"data"),f.setUint32(40,t.length*i,!0),1===e?floatTo16BitPCM(f,44,t):writeFloat32(f,44,t),l}function interleave(t,e){for(var n=t.length+e.length,a=new Float32Array(n),r=0,i=0;r<n;)a[r++]=t[i],a[r++]=e[i],i++;return a}function writeFloat32(t,e,n){for(var a=0;a<n.length;a++,e+=4)t.setFloat32(e,n[a],!0)}function floatTo16BitPCM(t,e,n){for(var a=0;a<n.length;a++,e+=2){var r=Math.max(-1,Math.min(1,n[a]));t.setInt16(e,r<0?32768*r:32767*r,!0)}}function writeString(t,e,n){for(var a=0;a<n.length;a++)t.setUint8(e+a,n.charCodeAt(a))}</script>
-<!-- Manager Audio - unmute.min.js -->
-<script>"use strict";function unmute(i,e,n){var t;function d(n,i,e,t,d){for(var o=0;o<i.length;++o)n.addEventListener(i[o],e,{capture:t,passive:d})}function o(n,i,e,t,d){for(var o=0;o<i.length;++o)n.removeEventListener(i[o],e,{capture:t,passive:d})}function a(){}void 0===e&&(e=!1),void 0===n&&(n=!1),void 0!==document.hidden?t={hidden:"hidden",visibilitychange:"visibilitychange"}:void 0!==document.webkitHidden?t={hidden:"webkitHidden",visibilitychange:"webkitvisibilitychange"}:void 0!==document.mozHidden?t={hidden:"mozHidden",visibilitychange:"mozvisibilitychange"}:void 0!==document.msHidden&&(t={hidden:"msHidden",visibilitychange:"msvisibilitychange"});var c=navigator.userAgent.toLowerCase(),u=n||0<=c.indexOf("iphone")&&c.indexOf("like iphone")<0||0<=c.indexOf("ipad")&&c.indexOf("like ipad")<0||0<=c.indexOf("ipod")&&c.indexOf("like ipod")<0||0<=c.indexOf("mac os x")&&0<navigator.maxTouchPoints,A=!0;function s(){var n=!(!e&&(t&&document[t.hidden]||u&&!document.hasFocus()));n!==A&&(A=n,b(!1),h())}function l(){s()}function r(n){n&&n.target!==window||s()}function h(){var n;A?"running"!==i.state&&"closed"!==i.state&&k&&(n=i.resume(),n&&n.then(a,a).catch(a)):"running"===i.state&&(n=i.suspend(),n&&n.then(a,a).catch(a))}function v(n){n&&n.unmute_handled||(n.unmute_handled=!0,h())}t&&d(document,[t.visibilitychange],l,!0,!0),u&&d(window,["focus","blur"],r,!0,!0),d(i,["statechange"],v,!0,!0),i.onstatechange||(i.onstatechange=v);var g=null;function m(n,i){for(var e=i;1<n;n--)e+=i;return e}var f="data:audio/mpeg;base64,//uQx"+m(23,"A")+"WGluZwAAAA8AAAACAAACcQCA"+m(16,"gICA")+m(66,"/")+"8AAABhTEFNRTMuMTAwA8MAAAAAAAAAABQgJAUHQQAB9AAAAnGMHkkI"+m(320,"A")+"//sQxAADgnABGiAAQBCqgCRMAAgEAH"+m(15,"/")+"7+n/9FTuQsQH//////2NG0jWUGlio5gLQTOtIoeR2WX////X4s9Atb/JRVCbBUpeRUq"+m(18,"/")+"9RUi0f2jn/+xDECgPCjAEQAABN4AAANIAAAAQVTEFNRTMuMTAw"+m(97,"V")+"Q==";function b(n){var i;u&&(A?n&&(g||(i=document.createElement("div"),i.innerHTML="<audio x-webkit-airplay='deny'></audio>",g=i.children.item(0),g.controls=!1,g.disableRemotePlayback=!0,g.preload="auto",g.src=f,g.loop=!0,g.load()),g.paused&&(i=g.play(),i&&i.then(a,p).catch(p))):p())}function p(){g&&(g.src="about:blank",g.load(),g=null)}var w=["click","contextmenu","auxclick","dblclick","mousedown","mouseup","touchend","keydown","keyup"],k=!1;function y(){k=!0,b(!0),h()}return d(window,w,y,!0,!0),{dispose:function(){p(),t&&o(document,[t.visibilitychange],l,!0,!0),u&&o(window,["focus","blur"],r,!0,!0),o(window,w,y,!0,!0),o(i,["statechange"],v,!0,!0),i.onstatechange===v&&(i.onstatechange=null)}}}</script>
+<script>function iOS(){return["iPad Simulator","iPhone Simulator","iPod Simulator","iPad","iPhone","iPod"].includes(navigator.platform)||navigator.userAgent.includes("Mac")&&"ontouchend"in document}try{window.AudioContext=window.AudioContext||window.webkitAudioContext}catch(o){console.log("Manager Audio, No Web Audio API support")}function decodeAudioDataArr(o,t,d,e){for(let i=0;i<d.length&&i<t.length;i++)o.decodeAudioData(t[i],(o=>{e(o,d[i])}))}
+</script>
 
 ```
 3. Perfect, the addon is installed!🎉
@@ -71,12 +71,20 @@ Manager_Audio.Audio.continue_audio()
 ```
 
 #### Source
-
-* [unmute.js](https://github.com/swevans/unmute/tree/master) - for hack ios and play audio
-* [audiobuffer-to-wav](https://github.com/Experience-Monks/audiobuffer-to-wav/tree/2272eb09bd46a05e50a6d684d908aa6f13c58f63) - for convert .ogg buffer to .wav
-
-* Manager_Audio Original JS
+Manager_Audio Original JS
 ```js
+function iOS() {
+  return [
+    'iPad Simulator',
+    'iPhone Simulator',
+    'iPod Simulator',
+    'iPad',
+    'iPhone',
+    'iPod'
+  ].includes(navigator.platform)
+  // iPad on iOS 13 detection
+  || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+}
 try {
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
 } catch (o) {
@@ -89,7 +97,7 @@ function decodeAudioDataArr(js_audio_context, _js_array_buffers, _js_array_keys,
         });
 }
 ```
-* Minify JS (for head include)
+Minify JS (for head include)
 ```js
-try{window.AudioContext=window.AudioContext||window.webkitAudioContext}catch(o){console.log("Manager Audio, No Web Audio API support")}function decodeAudioDataArr(o,t,d,e){for(let i=0;i<d.length&&i<t.length;i++)o.decodeAudioData(t[i],(o=>{e(o,d[i])}))}
+function iOS(){return["iPad Simulator","iPhone Simulator","iPod Simulator","iPad","iPhone","iPod"].includes(navigator.platform)||navigator.userAgent.includes("Mac")&&"ontouchend"in document}try{window.AudioContext=window.AudioContext||window.webkitAudioContext}catch(o){console.log("Manager Audio, No Web Audio API support")}function decodeAudioDataArr(o,t,d,e){for(let i=0;i<d.length&&i<t.length;i++)o.decodeAudioData(t[i],(o=>{e(o,d[i])}))}
 ```
