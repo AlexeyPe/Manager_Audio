@@ -9,13 +9,6 @@ signal test(text)
 var _print_debug:bool = true
 const _print:String = "Addon:ManagerAudio"
 
-# iOS hack - https://github.com/swevans/unmute/tree/master#usage
-var allowBackgroundPlayback = false; # default false, recommended false
-var forceIOSBehavior = false; # default false, recommended false
-
-const convert_to_wave_for_iOS_or_OSX:bool = true # Need true if your audio files is .ogg/..
-const convert_to_wave_for_other:bool = false # Win/Android
-
 enum AudioName {
 	pip, 
 	test_music
@@ -41,7 +34,6 @@ var all_stop:bool = false
 var js_audio_context
 var js_audio_context_gainNode
 var js_console:JavaScriptObject
-var js_unmuteHandle:JavaScriptObject
 var js_window:JavaScriptObject
 var js_decodeAudioData_callback = JavaScript.create_callback(self, "js_decodeAudioData_callback")
 var _current_js_decodeAudioData_count:int # private, not use
@@ -164,8 +156,6 @@ func _ready():
 		
 		# iOS hack
 		# https://github.com/swevans/unmute/tree/master#usage
-#		if OS.has_feature("iOS") and OS.has_feature("HTML5"):
-#		js_unmuteHandle = js_window.unmute(js_audio_context, allowBackgroundPlayback, forceIOSBehavior);
 		
 		# For each sound you need to create an AudioBuffer
 		# AudioBuffer is created using AudioContext.decodeAudioData() or AudioContext.createBuffer()
@@ -199,30 +189,11 @@ func load_all_audio():
 
 func js_decodeAudioData_callback(args:Array):
 	js_console.log("js_decodeAudioData_callback ", args[0])
-	if _current_converted_to_wav == false: 
-		if (convert_to_wave_for_iOS_or_OSX and (OS.has_feature("iOS") or OS.has_feature("OSX"))) \
-		or convert_to_wave_for_other:
-			_js_AudioName_to_js_AudioBuffer[args[1]] = js_window.audioBufferToWav(args[0])
-		else: _js_AudioName_to_js_AudioBuffer[args[1]] = args[0]
-	else:
-		_js_AudioName_to_js_AudioBuffer[args[1]] = args[0]
+	_js_AudioName_to_js_AudioBuffer[args[1]] = args[0]
 	_current_js_decodeAudioData_count += 1
 	if _current_js_decodeAudioData_count == _current_js_decodeAudioData_count_target:
 		_current_js_decodeAudioData_count = 0
-		if _current_converted_to_wav == true \
-		or (convert_to_wave_for_iOS_or_OSX == false and (OS.has_feature("iOS") or OS.has_feature("OSX"))) \
-		or (convert_to_wave_for_other == false and (!OS.has_feature("iOS") or !OS.has_feature("OSX"))): 
-			emit_signal("_on_decodeAudioData_all")
-		else:
-			_current_converted_to_wav = true
-			var _js_array_buffers:JavaScriptObject = JavaScript.create_object("Array")
-			var _js_array_keys:JavaScriptObject = JavaScript.create_object("Array")
-			for key_name in _js_AudioName_to_js_AudioBuffer.keys():
-				_js_array_buffers.push(_js_AudioName_to_js_AudioBuffer[key_name])
-				_js_array_keys.push(key_name)
-#			js_console.log("_js_array_buffers ", _js_array_buffers)
-#			js_console.log("_js_array_keys ", _js_array_keys)
-			js_window.decodeAudioDataArr(js_audio_context, _js_array_buffers, _js_array_keys, js_decodeAudioData_callback)
+		emit_signal("_on_decodeAudioData_all")
 
 func on_audio_ended(audio:Audio):
 	emit_signal("on_ended_audio", audio)
@@ -261,11 +232,12 @@ func audio_play(audio_name:int, volume:float = 1.0) -> Audio:
 	return result
 
 func all_pause():
-	if OS.has_feature("HTML5"): 
-#		if js_unmuteHandle != null:
-#			js_unmuteHandle.dispose()
-#			js_unmuteHandle = null
-		js_audio_context.suspend()
+	if OS.has_feature("HTML5"):
+		if js_window.iOS():
+			for audio in all_audio:
+				if audio is Audio:
+					audio.pause_audio()
+		else: js_audio_context.suspend()
 	else:
 		for audio in all_audio:
 			if audio is Audio:
@@ -273,9 +245,12 @@ func all_pause():
 	all_stop = true
 
 func all_continue():
-	if OS.has_feature("HTML5"): 
-#		if js_unmuteHandle == null:
-#			js_unmuteHandle = js_window.unmute(js_audio_context, allowBackgroundPlayback, forceIOSBehavior)
+	if OS.has_feature("HTML5"):
+		if js_window.iOS():
+			for audio in all_audio:
+				if audio is Audio:
+					if audio.is_pause:
+						audio.continue_audio()
 		js_audio_context.resume()
 	else:
 		for audio in all_audio:

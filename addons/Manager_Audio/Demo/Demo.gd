@@ -49,6 +49,6 @@ func _on_Btn_AllContinue_pressed():
 
 
 func _on_HSlider_value_changed(value):
-	var slider:HSlider = $CenterContainer/HBoxContainer/VBoxContainer4/HBoxContainer/HSlider
+	var slider:HSlider = $CenterContainer/VBoxContainer/HBoxContainer/VBoxContainer4/HBoxContainer/HSlider
 	if current_audio_music != null:
 		current_audio_music.set_volume(slider.value)
