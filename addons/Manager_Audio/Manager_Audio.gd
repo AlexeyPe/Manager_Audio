@@ -36,6 +36,8 @@ var js_audio_context_gainNode
 var js_console:JavaScriptObject
 var js_window:JavaScriptObject
 var js_decodeAudioData_callback = JavaScript.create_callback(self, "js_decodeAudioData_callback")
+var js_blur_callback = JavaScript.create_callback(self, "js_blur_callback")
+var js_focus_callback = JavaScript.create_callback(self, "js_focus_callback")
 var _current_js_decodeAudioData_count:int # private, not use
 var _current_js_decodeAudioData_count_target:int # private, not use
 var _current_converted_to_wav:bool = false
@@ -146,12 +148,20 @@ func _check_func_valid(function_name:String, args:Array) -> bool:
 	if _print_debug: print("%s _check_func_valid(function_name:%s, args:%s)"%[_print, function_name, args])
 	return result
 
+func js_blur_callback(args:Array):
+	all_pause()
+
+func js_focus_callback(args:Array):
+	all_continue()
+
 func _ready():
 	if OS.has_feature("HTML5") and !OS.has_feature("iOS"):
 		if _print_debug: print("%s _ready(), OS has_feature HTML5/!iOS - the addon works, for audio the Web Audio API is used"%[_print])
 		# Web Audio Api/AudioContext is designed to control and play all sounds
 		js_audio_context = JavaScript.create_object("AudioContext")
 		js_window = JavaScript.get_interface("window")
+		js_window.addEventListener("blur", js_blur_callback)
+		js_window.addEventListener("focus", js_focus_callback)
 		js_console = JavaScript.get_interface("console")
 		
 		# iOS hack
