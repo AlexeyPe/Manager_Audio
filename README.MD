@@ -1,10 +1,14 @@
 # Manager_Audio - is cross-platform audio addon for Godot 3.5
+[![Godot](https://img.shields.io/badge/Godot%20Engine-3.5.2-blue.svg)](https://github.com/godotengine/godot/)
+![GitHub License](https://img.shields.io/github/license/AlexeyPe/Manager_Audio)
+![GitHub Repo stars](https://img.shields.io/github/stars/AlexeyPe/Manager_Audio)
 
-* This Addon is stable and ready to use
-* TWork on the addon continues (rare, but cool updates :))
-* Currently, only 1d sound is supported, 2d/3d sound support is planned for the distant future.
+__If you have ideas for improvement, write me to [telegram](https://t.me/Alexey_Pe) / Issues / pull, I’ll read everything__
 
 __My Telegram [@Alexey_Pe](https://t.me/Alexey_Pe)__
+
+* This Addon is stable and ready to use. Work on the addon continues (rare, but cool updates :))
+* Currently, only 1d sound is supported, 2d/3d sound support is planned for the distant future.
 
 ### Support platforms
 Platform | Backend | Info

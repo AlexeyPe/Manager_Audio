@@ -149,10 +149,18 @@ func _check_func_valid(function_name:String, args:Array) -> bool:
 	return result
 
 func js_blur_callback(args:Array):
+	if _print_debug: print("Manager_Audio, js_blur_callback()")
 	all_pause()
 
 func js_focus_callback(args:Array):
-	all_continue()
+	if _print_debug: print("Manager_Audio, js_focus_callback() all_stop:%s "%[all_stop])
+	if get_tree().root.has_node("YandexGames"):
+		var _YandexGames = get_tree().root.get_node("YandexGames")
+		print("_YandexGames.now_fullscreen %s, _YandexGames.now_rewarded %s, _YandexGames.now_purchase %s, _YandexGames.now_review %s"%[_YandexGames.now_fullscreen, _YandexGames.now_rewarded, _YandexGames.now_purchase, _YandexGames.now_review])
+		if _YandexGames.now_fullscreen == false and _YandexGames.now_rewarded == false and _YandexGames.now_purchase == false and _YandexGames.now_review == false:
+			all_continue()
+	else: 
+		all_continue()
 
 func _ready():
 	if OS.has_feature("HTML5") and !OS.has_feature("iOS"):
@@ -163,7 +171,6 @@ func _ready():
 		js_window.addEventListener("blur", js_blur_callback)
 		js_window.addEventListener("focus", js_focus_callback)
 		js_console = JavaScript.get_interface("console")
-		
 		# iOS hack
 		# https://github.com/swevans/unmute/tree/master#usage
 		
